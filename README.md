@@ -6,6 +6,7 @@ This repository provides an example of a web application using OpenAI's Realtime
 
 - WebRTC(Recommended)
   - [OpenAI Realtime API の音声会話アプリを WebRTC を使って実装する](https://developer.mamezou-tech.com/blogs/2024/12/21/openai-realtime-api-webrtc/)
+  - [Implementing an OpenAI Realtime API Voice Conversation App Using WebRTC](https://developer.mamezou-tech.com/en/blogs/2024/12/21/openai-realtime-api-webrtc/)
 
 - WebSocket
   - [OpenAI の Realtime API を使ってAIと音声会話するWebアプリを実装してみる](https://developer.mamezou-tech.com/blogs/2024/10/16/openai-realtime-api-nuxt/)
