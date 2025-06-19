@@ -81,14 +81,18 @@ const route = useRoute();
 onMounted(async () => {
   selectedTopic.value = (route.query.topic as string) || null;
 
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' },
-  audio: true });
-  if (selfVideoRef.value) {
-    selfVideoRef.value.srcObject = stream;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' },
+      audio: true,
+    });
+    if (selfVideoRef.value) {
+      selfVideoRef.value.srcObject = stream;
+    }
+  } catch (err) {
+    logMessage("Error occurred😭");
+    console.error("Camera/Mic error:", err);
   }
-
- 
-  
 });
 
 onUnmounted(() => {
@@ -110,7 +114,7 @@ async function handleConnect() {
 <template>
   <div class="video-call">
     <div class="main-video">
-      <video ref="selfVideoRef" autoplay muted class="self-video" />
+      <video ref="selfVideoRef" autoplay muted playsinline class="self-video" />
     </div>
 
     <div class="control-bar">
