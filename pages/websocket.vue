@@ -81,7 +81,8 @@ const route = useRoute();
 onMounted(async () => {
   selectedTopic.value = (route.query.topic as string) || null;
 
-  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' },
+  audio: true });
   if (selfVideoRef.value) {
     selfVideoRef.value.srcObject = stream;
   }
