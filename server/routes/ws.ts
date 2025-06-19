@@ -1,52 +1,54 @@
 import { WebSocket } from 'ws';
-// https://nitro.unjs.io/guide/websocket
-// https://crossws.unjs.io/
 
-// 接続ユーザー単位にセッションを管理する
 const connections: { [id: string]: WebSocket } = {};
 
 export default defineWebSocketHandler({
   open(peer) {
-    if (!connections[peer.id]) {
-      // OpenAIのRealtime APIとの接続
-      const url = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17';
-      connections[peer.id] = new WebSocket(url, {
-        headers: {
-          'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY,
-          'OpenAI-Beta': 'realtime=v1',
-        },
-      });
-    }
-    const instructions = '明るく元気に話してください。仲の良い友人のように振る舞い、敬語は使わないでください。出力は日本語でしてください。';
+    const query = getQuery(peer); // 👈 get topic from frontend
+    const topic = query.topic as string | undefined;
 
-    connections[peer.id].on('open', () => {
-      // Realtime APIのセッション設定
-      connections[peer.id].send(JSON.stringify({
+    const instructions = topic
+      ? `You are a podcast assistant. The user wants to talk about "${topic}". Ask up to 4 engaging follow-up questions to help create a short podcast. Be warm, curious, and conversational.`
+      : `You are a podcast assistant. Ask the user what topic they’re interested in, then ask up to 4 engaging follow-up questions.`;
+
+    const url = 'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17';
+    const openaiSocket = new WebSocket(url, {
+      headers: {
+        'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY,
+        'OpenAI-Beta': 'realtime=v1',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    connections[peer.id] = openaiSocket;
+
+    openaiSocket.on('open', () => {
+      openaiSocket.send(JSON.stringify({
         type: 'session.update',
         session: {
           voice: 'shimmer',
-          instructions: instructions,
+          instructions,
           input_audio_transcription: { model: 'whisper-1' },
           turn_detection: { type: 'server_vad' },
         },
       }));
     });
-    connections[peer.id].on('message', (message) => {
-      // Realtime APIのサーバーイベントはそのままクライアントに返す
+
+    openaiSocket.on('message', (message) => {
       peer.send(message.toString());
     });
   },
+
   message(peer, message) {
-    // クライアントイベインとはそのままRealtime APIに中継する
-    connections[peer.id].send(message.text());
+    connections[peer.id]?.send(message.text());
   },
+
   close(peer) {
-    connections[peer.id].close();
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    connections[peer.id]?.close();
     delete connections[peer.id];
-    console.log('closed websocket');
   },
+
   error(peer, error) {
-    console.log('error', { error, id: peer.id });
+    console.error('WebSocket error:', error);
   },
 });

@@ -6,14 +6,14 @@ const { initCanvas } = useAudioVisualizer();
 let audioWaveform: ReturnType<typeof initCanvas> | null = null;
 let analyser: AnalyserNode | null = null;
 
-const audioCanvas = useTemplateRef('audio-canvas');
+const audioCanvas = useTemplateRef("audio-canvas");
 const isConnected = ref(false);
 const connecting = ref(false);
 
 function initAudioWaveFormCanvas(mediaStream: MediaStream) {
   audioContext = new window.AudioContext({ sampleRate: 24000 });
   analyser = new AnalyserNode(audioContext, {
-    fftSize: 2048
+    fftSize: 2048,
   });
   const inputSource = audioContext.createMediaStreamSource(mediaStream);
   inputSource.connect(analyser);
@@ -31,86 +31,90 @@ function connectStreamToAnalyser(remoteStream: MediaStream) {
 async function connect() {
   connecting.value = true;
   try {
-    // 一時的な認証キーを取得
-    const tokenResponse = await $fetch('/session');
+    // Get temporary auth key
+    const tokenResponse = await $fetch("/session");
     const ephemeralKey = tokenResponse.client_secret.value;
 
-    // 入力音声取得(許可)
+    // Get input audio (permission)
     const mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: true
+      audio: true,
     });
-    initAudioWaveFormCanvas(mediaStream); // 波形表示用のキャンパス初期化
+    initAudioWaveFormCanvas(mediaStream); // Initialize canvas for waveform display
 
     peerConn = new RTCPeerConnection();
 
-    // 出力音声(audioタグ)
-    const audioEl = document.createElement('audio');
+    // Output audio (audio tag)
+    const audioEl = document.createElement("audio");
     audioEl.autoplay = true;
-    peerConn.ontrack = event => {
-      console.log('receive audio track', event.track);
+    peerConn.ontrack = (event) => {
+      console.log("receive audio track", event.track);
       const remoteStream = event.streams[0];
-      // 出力音声の波形表示
+      // Display waveform of output audio
       connectStreamToAnalyser(remoteStream);
-      // 出力音声をaudioタグのsrcObjectに設定
-      return audioEl.srcObject = remoteStream;
+      // Set output audio to srcObject of audio tag
+      return (audioEl.srcObject = remoteStream);
     };
 
-    // 入力音声(マイク)
+    // Input audio (microphone)
     peerConn.addTrack(mediaStream.getTracks()[0]);
 
-    // イベント送受信用のデータチャンネル
-    channel = peerConn.createDataChannel('oai-events');
-    channel.addEventListener('message', (e) => {
+    // Data channel for event send/receive
+    channel = peerConn.createDataChannel("oai-events");
+    channel.addEventListener("message", (e) => {
       const event = JSON.parse(e.data);
       logEvent(event.type);
       switch (event.type) {
-        case 'response.audio_transcript.done':
+        case "response.audio_transcript.done":
           setTimeout(() => logMessage(`🤖: ${event.transcript}`), 100);
           break;
-        case 'conversation.item.input_audio_transcription.completed':
+        case "conversation.item.input_audio_transcription.completed":
           if (event.transcript) logMessage(`😄: ${event.transcript}`);
           break;
-        case 'error':
+        case "error":
           logEvent(event.error);
-          if (event.code === 'session_expired') disconnect();
+          if (event.code === "session_expired") disconnect();
           break;
         default:
           break;
       }
     });
 
-    // SDPでRealtimeAPIとのセッション確立
+    // Establish session with RealtimeAPI using SDP
     const offer = await peerConn.createOffer();
     await peerConn.setLocalDescription(offer);
 
     const sdpResponse = await $fetch<string>(
-      `https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17`, {
-        method: 'POST',
+      "https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-12-17",
+      {
+        method: "POST",
         body: offer.sdp,
         headers: {
           Authorization: `Bearer ${ephemeralKey}`,
-          'Content-Type': 'application/sdp'
-        }
-      });
+          "Content-Type": "application/sdp",
+        },
+      }
+    );
 
     await peerConn.setRemoteDescription({
-      type: 'answer',
-      sdp: sdpResponse
+      type: "answer",
+      sdp: sdpResponse,
     });
 
     channel.onopen = () => {
-      channel?.send(JSON.stringify({
-        // サーバーAPIで設定しているけど設定できてない??
-        type: 'session.update',
-        session: {
-          input_audio_transcription: { model: 'whisper-1' },
-        },
-      }))
-    }
+      channel?.send(
+        JSON.stringify({
+          // Supposed to be set on server API, but might not be?
+          type: "session.update",
+          session: {
+            input_audio_transcription: { model: "whisper-1" },
+          },
+        })
+      );
+    };
     peerConn.onconnectionstatechange = () => {
-      console.log('Connection State:', peerConn?.connectionState);
-      if (peerConn?.connectionState === 'connected') {
-        logMessage('Connected to server🍻');
+      console.log("Connection State:", peerConn?.connectionState);
+      if (peerConn?.connectionState === "connected") {
+        logMessage("Connected to server🍻");
         isConnected.value = true;
         connecting.value = false;
       }
@@ -132,15 +136,15 @@ function disconnect() {
   audioContext = null;
   audioWaveform?.stop();
   audioWaveform = null;
-  logMessage('Disconnected👋');
+  logMessage("Disconnected👋");
   isConnected.value = false;
 }
 
 onUnmounted(disconnect);
 
-// メッセージ、イベントログ出力
-const messageContainer = useTemplateRef('message-container');
-const logContainer = useTemplateRef('log-container');
+// Output message and event logs
+const messageContainer = useTemplateRef("message-container");
+const logContainer = useTemplateRef("log-container");
 const messageLog = ref<string[]>([]);
 const eventLog = ref<string[]>([]);
 
@@ -164,21 +168,23 @@ function scroll(containerRef: Ref<HTMLElement | null>) {
 </script>
 
 <template>
-  <div class="app p-6 bg-gray-100 min-h-screen flex flex-col items-center justify-center">
+  <div
+    class="app p-6 bg-gray-100 min-h-screen flex flex-col items-center justify-center"
+  >
     <div class="flex gap-4 mb-6">
       <button
         :disabled="isConnected"
         class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-all flex items-center gap-2"
         @click="connect"
       >
-        <i class="fas fa-plug" /> 接続
+        <i class="fas fa-plug" /> Connect
       </button>
       <button
         :disabled="!isConnected"
         class="px-6 py-3 bg-red-600 text-white rounded-lg shadow-md hover:bg-red-700 transition-all flex items-center gap-2"
         @click="disconnect"
       >
-        <i class="fas fa-times-circle" /> 切断
+        <i class="fas fa-times-circle" /> Disconnect
       </button>
     </div>
 
@@ -201,7 +207,7 @@ function scroll(containerRef: Ref<HTMLElement | null>) {
         {{ msg }}
       </div>
     </div>
-    <hr>
+    <hr />
     <div
       ref="log-container"
       class="w-full mt-4 max-w-lg h-80 overflow-y-auto bg-white rounded-lg shadow-md p-4"
@@ -219,7 +225,7 @@ function scroll(containerRef: Ref<HTMLElement | null>) {
 
 <style scoped>
 .app {
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
 }
 
 button:disabled {

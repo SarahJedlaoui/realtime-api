@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "nuxt": "^3.14.1592",
+    "swiper": "^11.2.8",
     "vue": "latest",
     "vue-router": "latest",
     "ws": "^8.18.0"
