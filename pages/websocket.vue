@@ -44,11 +44,16 @@ function handleWebSocketMessage(message: MessageEvent) {
   }
 }
 
+const isLocal = window.location.hostname === 'localhost';
+
 const { connect, isConnected, disconnect, sendMessage } = useRealtimeApi({
-  url: "ws://localhost:3000/ws",
+  url: isLocal
+    ? 'ws://localhost:3000/ws' // ✅ For local testing
+    : 'wss://realtime-api-lake.vercel.app/ws', // ✅ For production
   logMessage,
   onMessageCallback: handleWebSocketMessage,
 });
+
 
 function handleAudioFlush(buffer: ArrayBuffer) {
   sendMessage({
