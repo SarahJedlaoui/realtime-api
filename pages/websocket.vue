@@ -49,7 +49,7 @@ const isLocal = window.location.hostname === 'localhost';
 const { connect, isConnected, disconnect, sendMessage } = useRealtimeApi({
   url: isLocal
     ? 'ws://localhost:3000/ws' // ✅ For local testing
-    : 'wss://realtime-api-lake.vercel.app/ws', // ✅ For production
+    : 'wss://realtimeapi-f45e22c958d7.herokuapp.com/api/ws', // ✅ For production
   logMessage,
   onMessageCallback: handleWebSocketMessage,
 });
@@ -106,8 +106,6 @@ async function handleConnect() {
     // ❌ Don't send session.update here — it's already sent by server
   }
 };
-
-
 
 </script>
 
